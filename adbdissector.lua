@@ -31,6 +31,7 @@ local pf_okay_remoteid = ProtoField.uint32("adb.okay.remoteid", "Remote ID", bas
 
 -- Write message
 local pf_write = ProtoField.bytes("adb.write", "Write Stream Message")
+local pf_write_localid = ProtoField.uint32("adb.write.localid", "Local ID", base.HEX)
 local pf_write_remoteid = ProtoField.uint32("adb.write.remoteid", "Remote ID", base.HEX)
 local pf_write_data = ProtoField.bytes("adb.write.databytes", "Data (Bytes)")
 local pf_write_string = ProtoField.string("adb.write.datastring", "Data (String)")
@@ -66,6 +67,7 @@ p_adb.fields = {
     pf_okay_localid,
     pf_okay_remoteid,
     pf_write,
+    pf_write_localid,
     pf_write_remoteid,
     pf_write_data,
     pf_write_string,
@@ -243,7 +245,7 @@ function p_adb.dissector(buf, pkt, root)
             subtree:add(pf_close, buf(pktst, datalen+24))
             
             localidentry = subtree:add(pf_close_localid, buf(pktst+4, 4), arg0)
-            
+
             remoteidentry = subtree:add(pf_close_remoteid, buf(pktst+8, 4), arg1)
             if arg1 == 0 then
                 -- Invalid remote ID
@@ -257,6 +259,12 @@ function p_adb.dissector(buf, pkt, root)
         elseif command == 0x45545257 then
             -- WRITE
             subtree:add(pf_write, buf(pktst, datalen+24))
+            
+            localidentry = subtree:add(pf_write_localid, buf(pktst+4, 4), arg0)
+            if arg0 == 0 then
+                -- Invalid local ID
+                localidentry:add_expert_info(PI_PROTOCOL, PI_WARN)
+            end
             
             remoteidentry = subtree:add(pf_write_remoteid, buf(pktst+8, 4), arg1)
             if arg1 == 0 then
